@@ -18,8 +18,6 @@ Arduino Nano 33 IoT  <--BLE-->  Raspberry Pi  <--MQTT-->  AWS Brooker
 - **DHT11** temperature/humidity sensor
 - **Buzzer** 
 
-## Arduino Setup (assignment1.ino)
-
 ### Hardware Connections
 - DHT11 sensor → Pin 2
 - Buzzer → Pin 5
@@ -43,4 +41,50 @@ Arduino Nano 33 IoT  <--BLE-->  Raspberry Pi  <--MQTT-->  AWS Brooker
 {"led": "off"}
 {"led": "toggle"}
 {"buzzer": "beep"}
+{"buzzer": "heartbeat"}
 ```
+
+## Features
+
+### Arduino Features
+- **Startup indication**: Buzzer beeps twice on power-on
+- **Connection status**: Visual and audio feedback
+  - Connected: Single beep + steady LED when transmitting data
+  - Disconnected: Three beeps + slow LED blink pattern
+- **Automatic data transmission**: Sends sensor data every 5 seconds when connected
+- **Remote control**: Responds to LED and buzzer commands via BLE
+
+### Bridge Features
+- **Auto-reconnection**: Automatic retry on connection failures
+- **Comprehensive logging**: Timestamped logs with different severity levels
+- **Error handling**: Robust error handling and recovery mechanisms
+- **Modular design**: Clean object-oriented architecture following SOLID principles
+
+## Configuration
+
+### MQTT Settings
+- **Broker**: `iot.qut.edu.kg:1883`
+- **Topics**:
+  - Sensor data: `iot/sensors/data`
+  - Commands: `iot/commands/arduino`
+
+### BLE Configuration
+- **Target Device**: `Arduino_IoT_Sensor_hhx`
+- **Service UUID**: `12345678-1234-1234-1234-123456789abc`
+- **Characteristics**:
+  - Sensor Data: `87654321-4321-4321-4321-cba987654321` (Read/Notify)
+  - Commands: `11111111-2222-3333-4444-555555555555` (Write)
+
+## License
+
+This project is developed for educational purposes as part of QUT IFN649 assignment.
+
+## References
+
+Hynek, H., & Ware, D. (2024). *Bleak: Bluetooth Low Energy platform agnostic client for Python* (Version 0.21.1) [Computer software]. https://github.com/hbldh/bleak
+
+OASIS. (2019). *MQTT version 5.0 OASIS standard*. Organization for the Advancement of Structured Information Standards. https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
+
+Sensirion. (2024). *DHT11 humidity and temperature sensor datasheet*. Retrieved December 28, 2024, from https://www.mouser.com/datasheet/2/758/DHT11-Technical-Data-Sheet-Translated-Version-1143054.pdf
+
+The Internet Engineering Task Force. (2017). *The JavaScript Object Notation (JSON) data interchange format* (RFC 8259). https://tools.ietf.org/html/rfc8259
