@@ -25,6 +25,9 @@ BLEStringCharacteristic commandCharacteristic(COMMAND_CHAR_UUID, BLEWrite, 100);
 unsigned long previousMillis = 0;
 const long interval = 5000; // Send data every 5 seconds
 
+// BLE connection state tracking
+bool previousConnectionState = false;
+
 void setup() {
   Serial.begin(9600);
   while (!Serial);
@@ -72,6 +75,24 @@ void loop() {
   
   // Check if BLE device is connected
   BLEDevice central = BLE.central();
+  bool currentConnectionState = (central != NULL);
+  
+  // Check for connection state changes
+  if (currentConnectionState != previousConnectionState) {
+    if (currentConnectionState) {
+      // Device just connected - beep once
+      playTone(1000, 300);
+      Serial.println("BLE device connected!");
+    } else {
+      // Device just disconnected - beep three times
+      for (int i = 0; i < 3; i++) {
+        playTone(600, 200);
+        delay(150);
+      }
+      Serial.println("BLE device disconnected!");
+    }
+    previousConnectionState = currentConnectionState;
+  }
   
   if (central) {
     // Device is connected - handle data and commands
