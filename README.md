@@ -8,6 +8,9 @@ A simple IoT bridge that connects Arduino Nano 33 IoT sensors to MQTT broker via
 Arduino Nano 33 IoT  <--BLE-->  Raspberry Pi  <--MQTT-->  AWS Brooker
 ```
 
+<img width="1290" height="689" alt="image" src="https://github.com/user-attachments/assets/0622e8ca-6e39-47c5-bac7-0e8ddcf65bed" />
+
+
 ## Hardware Requirements
 
 - **Arduino Nano 33 IoT** with DHT11 sensor
