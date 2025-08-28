@@ -57,8 +57,12 @@ class IoTBridge:
         try:
             command = msg.payload.decode('utf-8')
             self.logger.info("MQTT command: %s", command)
-            if self.ble_client:
-                asyncio.create_task(self._send_command_to_arduino(command))
+            if self.ble_client and hasattr(self, '_loop'):
+                # Schedule the coroutine in the main event loop
+                asyncio.run_coroutine_threadsafe(
+                    self._send_command_to_arduino(command), 
+                    self._loop
+                )
         except UnicodeDecodeError as e:
             self.logger.error("Failed to decode MQTT message: %s", e)
 
@@ -148,6 +152,9 @@ class IoTBridge:
         """Start the IoT bridge"""
         self.logger.info("Arduino BLE-MQTT Bridge Starting...")
         self.running = True
+        
+        # Store reference to the current event loop for MQTT thread access
+        self._loop = asyncio.get_running_loop()
 
         try:
             self._setup_mqtt()
