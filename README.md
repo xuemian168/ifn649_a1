@@ -74,11 +74,24 @@ Arduino Nano 33 IoT  <--BLE-->  Raspberry Pi  <--MQTT-->  AWS Brooker
 - **Characteristics**:
   - Sensor Data: `87654321-4321-4321-4321-cba987654321` (Read/Notify)
   - Commands: `11111111-2222-3333-4444-555555555555` (Write)
- 
-<img width="1290" height="2796" alt="image" src="https://github.com/user-attachments/assets/14b4c63a-ec7b-41fe-870b-3e52ac2c3615" />
-<img width="1290" height="1659" alt="image" src="https://github.com/user-attachments/assets/37e64622-0a8c-47dc-9813-599b12789e11" />
-<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/7df13235-cbcb-490c-ae32-8f6f5e21223a" />
-<img width="1280" height="800" alt="image" src="https://github.com/user-attachments/assets/c50c4440-a8ae-4ac7-b36e-7c6a1f092bbc" />
+<table>
+<tr>
+<td width="50%">
+<img width="100%" alt="image" src="https://github.com/user-attachments/assets/14b4c63a-ec7b-41fe-870b-3e52ac2c3615" />
+</td>
+<td width="50%">
+<img width="100%" alt="image" src="https://github.com/user-attachments/assets/37e64622-0a8c-47dc-9813-599b12789e11" />
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img width="100%" alt="image" src="https://github.com/user-attachments/assets/7df13235-cbcb-490c-ae32-8f6f5e21223a" />
+</td>
+<td width="50%">
+<img width="100%" alt="image" src="https://github.com/user-attachments/assets/c50c4440-a8ae-4ac7-b36e-7c6a1f092bbc" />
+</td>
+</tr>
+</table>
 
 
 ## License
