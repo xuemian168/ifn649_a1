@@ -100,7 +100,7 @@ This project is developed for educational purposes as part of QUT IFN649 assignm
 
 ## References
 
-Hynek, H., & Ware, D. (2024). *Bleak: Bluetooth Low Energy platform agnostic client for Python* (Version 0.21.1) [Computer software]. https://github.com/hbldh/bleak
+Hynek, H., & Ware, D. (2025). *Bleak: Bluetooth Low Energy platform agnostic client for Python* (Version 0.21.1) [Computer software]. https://github.com/hbldh/bleak
 
 OASIS. (2019). *MQTT version 5.0 OASIS standard*. Organization for the Advancement of Structured Information Standards. https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
 
