@@ -14,7 +14,7 @@ import paho.mqtt.client as mqtt
 class IoTBridgeConfig:
     """Configuration class for IoT Bridge"""
     TARGET_NAME = "Arduino_IoT_Sensor_hhx"
-    SENSOR_CHAR_UUID = "87654321-4321-4321-4321-cba987654321"
+    SENSOR_CHAR_UUID = "87654321-4321-4321-4321-woleigedou22"
     COMMAND_CHAR_UUID = "11111111-2222-3333-4444-555555555555"
     MQTT_HOST = "iot.qut.edu.kg"
     MQTT_PORT = 1883

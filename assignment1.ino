@@ -13,7 +13,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 
 // BLE service and characteristic UUIDs
 #define SERVICE_UUID        "12345678-1234-1234-1234-123456789abc"
-#define SENSOR_CHAR_UUID    "87654321-4321-4321-4321-cba987654321"
+#define SENSOR_CHAR_UUID    "87654321-4321-4321-4321-woleigedou22"
 #define COMMAND_CHAR_UUID   "11111111-2222-3333-4444-555555555555"
 
 // BLE service and characteristics
@@ -62,7 +62,7 @@ void setup() {
   
   // Startup beep (2 times)
   for (int i = 0; i < 2; i++) {
-    playTone(800, 200);  // Beep at 800Hz for 200ms
+    boFangYinDiao(800, 200);  // Beep at 800Hz for 200ms
     delay(300);          // Pause between beeps
   }
   
@@ -81,12 +81,12 @@ void loop() {
   if (currentConnectionState != previousConnectionState) {
     if (currentConnectionState) {
       // Device just connected - beep once
-      playTone(1000, 300);
+      boFangYinDiao(1000, 300);
       Serial.println("BLE device connected!");
     } else {
       // Device just disconnected - beep three times
       for (int i = 0; i < 3; i++) {
-        playTone(600, 200);
+        boFangYinDiao(600, 200);
         delay(150);
       }
       Serial.println("BLE device disconnected!");
@@ -99,13 +99,13 @@ void loop() {
     
     // Check for incoming commands
     if (commandCharacteristic.written()) {
-      processCommand(commandCharacteristic.value());
+      chuLiMingLing(commandCharacteristic.value());
     }
     
     // Read and send sensor data every 5 seconds (only when connected)
     if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
-      readAndSendData();
+      duQuBingFaSongShuJu();
       digitalWrite(LED_PIN, HIGH); // Briefly flash LED when sending data
       delay(100);
       digitalWrite(LED_PIN, LOW);
@@ -123,7 +123,7 @@ void loop() {
   }
 }
 
-void readAndSendData() {
+void duQuBingFaSongShuJu() {
   // Read DHT11 sensor data
   float humidity = dht.readHumidity();
   float temperature = dht.readTemperature();
@@ -152,29 +152,29 @@ void readAndSendData() {
   Serial.println(jsonString);
 }
 
-void playHeartbeat() {
+void boFangXinTiao() {
   // Simple heartbeat: lub-dub pattern with LED sync
   digitalWrite(LED_PIN, HIGH);
-  playTone(200, 100);  // lub
+  boFangYinDiao(200, 100);  // lub
   digitalWrite(LED_PIN, LOW);
   delay(50);
   
   digitalWrite(LED_PIN, HIGH);
-  playTone(400, 80);   // dub
+  boFangYinDiao(400, 80);   // dub
   digitalWrite(LED_PIN, LOW);
   delay(50);
   
   digitalWrite(LED_PIN, HIGH);
-  playTone(200, 100);  // lub
+  boFangYinDiao(200, 100);  // lub
   digitalWrite(LED_PIN, LOW);
   delay(50);
   
   digitalWrite(LED_PIN, HIGH);
-  playTone(400, 80);   // dub
+  boFangYinDiao(400, 80);   // dub
   digitalWrite(LED_PIN, LOW);
 }
 
-void playTone(int frequency, int duration) {
+void boFangYinDiao(int frequency, int duration) {
   long period = 1000000L / frequency;
   long halfPeriod = period / 2;
   long cycles = ((long)frequency * (long)duration) / 1000;
@@ -187,7 +187,7 @@ void playTone(int frequency, int duration) {
   }
 }
 
-void processCommand(String command) {
+void chuLiMingLing(String command) {
   Serial.print("Received command: ");
   Serial.println(command);
   
@@ -220,10 +220,10 @@ void processCommand(String command) {
   if (doc.containsKey("buzzer")) {
     String buzzerCmd = doc["buzzer"];
     if (buzzerCmd == "beep") {
-      playTone(1000, 200);
+      boFangYinDiao(1000, 200);
       Serial.println("Buzzer beeped");
     } else if (buzzerCmd == "heartbeat") {
-      playHeartbeat();
+      boFangXinTiao();
       Serial.println("Buzzer played heartbeat");
     }
   }
