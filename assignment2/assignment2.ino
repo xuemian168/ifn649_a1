@@ -8,7 +8,7 @@
 // 激光模块 GND (地)   -> Arduino GND
 // 注意: Nano 33 IoT是3.3V逻辑，激光模块需使用3.3V供电
 
-#define LASER_PIN A0         // 激光发射器连接的模拟引脚
+#define LASER_PIN 2         // 激光发射器连接的模拟引脚
 #define LASER_POWER 255      // 激光功率 (0-255, 255=最大)
 
 void setup() {
