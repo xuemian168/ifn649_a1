@@ -1,184 +1,180 @@
 #!/usr/bin/env python3
 """
-Simplified BLE to MQTT Bridge
-Arduino Nano 33 IoT <-> Raspberry Pi <-> MQTT
+BLE to MQTT Bridge - Laser Sensor Data Reporter
+Arduino → Raspberry Pi → MQTT
 """
 
 import asyncio
 import logging
-from typing import Optional
 from bleak import BleakScanner, BleakClient
 import paho.mqtt.client as mqtt
 
 
-class IoTBridgeConfig:
-    """Configuration class for IoT Bridge"""
-    TARGET_NAME = "Arduino_IoT_Sensor_hhx"
-    SENSOR_CHAR_UUID = "87654321-4321-4321-4321-woleigedou22"
-    COMMAND_CHAR_UUID = "11111111-2222-3333-4444-555555555555"
-    MQTT_HOST = "iot.qut.edu.kg"
-    MQTT_PORT = 1883
-    SENSOR_TOPIC = "iot/sensors/data"
-    COMMAND_TOPIC = "iot/commands/arduino"
-    SCAN_TIMEOUT = 10.0
-    RETRY_DELAY = 3
-    DEVICE_CHECK_DELAY = 5
+# === Configuration ===
+ARDUINO_NAME = "Arduino_Laser_Receiver"
+SENSOR_UUID = "87654321-4321-4321-4321-cba987654321"
+COMMAND_UUID = "11111111-2222-3333-4444-555555555555"
+
+MQTT_BROKER = "iot.qut.edu.kg"
+MQTT_PORT = 1883
+SENSOR_TOPIC = "iot/sensors/laser_data"
+COMMAND_TOPIC = "iot/commands/laser"
+
+ENABLE_MQTT = True  # Set to False to disable MQTT
 
 
-class IoTBridge:
-    """BLE to MQTT Bridge for Arduino IoT sensors"""
+class LaserBridge:
+    """Laser Sensor BLE-MQTT Bridge"""
 
-    def __init__(self, config: IoTBridgeConfig):
-        self.config = config
-        self.ble_client: Optional[BleakClient] = None
-        self.mqtt_client: Optional[mqtt.Client] = None
+    def __init__(self):
+        self.ble_client = None
+        self.mqtt_client = None
         self.running = False
-        self._setup_logging()
 
-    def _setup_logging(self):
-        """Setup logging configuration"""
+        # Setup logging
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
+            format='%(asctime)s - %(message)s'
         )
-        self.logger = logging.getLogger(__name__)
+        self.log = logging.getLogger(__name__)
 
-    def _setup_mqtt(self):
-        """Setup MQTT client and callbacks"""
-        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.mqtt_client.on_message = self._on_mqtt_message
-        self.mqtt_client.connect(self.config.MQTT_HOST, self.config.MQTT_PORT, 60)
-        self.mqtt_client.subscribe(self.config.COMMAND_TOPIC)
-        self.mqtt_client.loop_start()
-        self.logger.info("✓ MQTT connected: %s", self.config.MQTT_HOST)
+    def setup_mqtt(self):
+        """Initialize MQTT"""
+        if not ENABLE_MQTT:
+            self.log.info("MQTT disabled")
+            return
 
-    def _on_mqtt_message(self, _client, _userdata, msg):
-        """Handle MQTT messages"""
         try:
-            command = msg.payload.decode('utf-8')
-            self.logger.info("MQTT command: %s", command)
-            if self.ble_client and hasattr(self, '_loop'):
-                # Schedule the coroutine in the main event loop
-                asyncio.run_coroutine_threadsafe(
-                    self._send_command_to_arduino(command), 
-                    self._loop
-                )
-        except UnicodeDecodeError as e:
-            self.logger.error("Failed to decode MQTT message: %s", e)
+            self.log.info(f"Connecting to MQTT: {MQTT_BROKER}:{MQTT_PORT}")
 
-    async def _scan_for_device(self):
+            # Create client
+            self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+            self.mqtt_client.on_connect = self.on_mqtt_connect
+            self.mqtt_client.on_message = self.on_mqtt_message
+
+            # Connect asynchronously
+            self.mqtt_client.loop_start()
+            self.mqtt_client.connect_async(MQTT_BROKER, MQTT_PORT, 60)
+
+            self.log.info("✓ MQTT started")
+
+        except Exception as e:
+            self.log.warning(f"MQTT connection failed: {e}")
+            self.mqtt_client = None
+
+    def on_mqtt_connect(self, client, userdata, flags, rc, properties=None):
+        """MQTT connection callback"""
+        if rc == 0:
+            self.log.info("✓ MQTT connected")
+            client.subscribe(COMMAND_TOPIC)
+        else:
+            self.log.error(f"✗ MQTT connection failed: {rc}")
+
+    def on_mqtt_message(self, client, userdata, msg):
+        """Received MQTT command"""
+        command = msg.payload.decode('utf-8')
+        self.log.info(f"Received command: {command}")
+
+        # Forward to Arduino
+        if self.ble_client:
+            asyncio.create_task(self.send_command(command))
+
+    async def send_command(self, command):
+        """Send command to Arduino"""
+        try:
+            await self.ble_client.write_gatt_char(
+                COMMAND_UUID,
+                command.encode('utf-8')
+            )
+            self.log.info(f"✓ Command sent: {command}")
+        except Exception as e:
+            self.log.error(f"Send failed: {e}")
+
+    def on_sensor_data(self, sender, data):
+        """Received sensor data"""
+        try:
+            json_data = data.decode('utf-8')
+            self.log.info(f"📡 {json_data}")
+
+            # Publish to MQTT
+            if self.mqtt_client:
+                self.mqtt_client.publish(SENSOR_TOPIC, json_data, qos=1)
+                self.log.info("✓ Published to MQTT")
+
+        except Exception as e:
+            self.log.error(f"Data processing failed: {e}")
+
+    async def find_arduino(self):
         """Scan for Arduino device"""
-        self.logger.info("Scanning for Arduino device...")
-        devices = await BleakScanner.discover(timeout=self.config.SCAN_TIMEOUT)
-        self.logger.info("Discovered %d BLE devices", len(devices))
+        self.log.info("Scanning for Arduino...")
+
+        devices = await BleakScanner.discover(timeout=10.0)
+        self.log.info(f"Found {len(devices)} BLE devices")
 
         for device in devices:
-            if device.name:
-                self.logger.debug("  - %s", device.name)
-                if "Arduino" in device.name:
-                    self.logger.info("    ⚠️  Possible Arduino device: %s", device.name)
-
-        for device in devices:
-            if device.name and self.config.TARGET_NAME in device.name:
+            if device.name and ARDUINO_NAME in device.name:
+                self.log.info(f"✓ Found: {device.name}")
                 return device
 
         return None
 
-    def _sensor_data_handler(self, _sender, data: bytearray):
-        """Handle sensor data from Arduino"""
-        try:
-            json_data = data.decode('utf-8')
-            self.logger.info("Sensor data: %s", json_data)
-            if self.mqtt_client:
-                self.mqtt_client.publish(self.config.SENSOR_TOPIC, json_data)
-                self.logger.info("✓ Published to MQTT")
-        except UnicodeDecodeError as e:
-            self.logger.error("Failed to decode sensor data: %s", e)
-
-    async def _send_command_to_arduino(self, command: str):
-        """Send command to Arduino"""
-        try:
-            if self.ble_client:
-                await self.ble_client.write_gatt_char(
-                    self.config.COMMAND_CHAR_UUID,
-                    command.encode('utf-8')
-                )
-                self.logger.info("✓ Command sent: %s", command)
-        except Exception as e:
-            self.logger.error("Failed to send command: %s", e)
-
-    async def _connect_to_device(self, device):
-        """Connect to BLE device and setup notifications"""
+    async def connect_arduino(self, device):
+        """Connect to Arduino"""
         async with BleakClient(device.address) as client:
             self.ble_client = client
-            self.logger.info("✓ BLE connected")
+            self.log.info("✓ BLE connected")
 
-            await client.start_notify(
-                self.config.SENSOR_CHAR_UUID,
-                self._sensor_data_handler
-            )
-            self.logger.info("✓ Subscribed to sensor data")
-            self.logger.info("Bridge running... (Ctrl+C to exit)")
+            # Subscribe to sensor data
+            await client.start_notify(SENSOR_UUID, self.on_sensor_data)
+            self.log.info("✓ Started receiving data")
+            self.log.info("=" * 60)
 
+            # Keep connection alive
             while self.running:
                 await asyncio.sleep(1)
 
-    async def _device_connection_loop(self):
-        """Main device connection loop with retry logic"""
+    async def run(self):
+        """Main loop"""
+        self.log.info("=" * 60)
+        self.log.info("Laser Sensor Bridge Started")
+        self.log.info("=" * 60)
+
+        self.running = True
+        self.setup_mqtt()
+
+        # Main loop: scan → connect → retry
         while self.running:
             try:
-                target_device = await self._scan_for_device()
+                device = await self.find_arduino()
 
-                if not target_device:
-                    self.logger.warning("✗ Device not found: %s", self.config.TARGET_NAME)
-                    self.logger.info("Please check:")
-                    self.logger.info("1. Is Arduino running?")
-                    self.logger.info("2. Does Arduino serial show 'Arduino BLE sensor started'?")
-                    self.logger.info("3. Are Arduino and this device close enough?")
-                    self.logger.info("Retrying in %d seconds...", self.config.DEVICE_CHECK_DELAY)
-                    await asyncio.sleep(self.config.DEVICE_CHECK_DELAY)
+                if not device:
+                    self.log.warning("Arduino not found, retrying in 5 seconds...")
+                    await asyncio.sleep(5)
                     continue
 
-                self.logger.info("✓ Found device: %s", target_device.name)
-                await self._connect_to_device(target_device)
+                await self.connect_arduino(device)
 
-            except Exception as ble_error:
-                self.logger.error("BLE connection failed: %s", ble_error)
-                self.logger.info("Retrying in %d seconds...", self.config.RETRY_DELAY)
-                self.ble_client = None
-                await asyncio.sleep(self.config.RETRY_DELAY)
+            except Exception as e:
+                self.log.error(f"Connection failed: {e}")
+                await asyncio.sleep(3)
 
-    async def start(self):
-        """Start the IoT bridge"""
-        self.logger.info("Arduino BLE-MQTT Bridge Starting...")
-        self.running = True
-        
-        # Store reference to the current event loop for MQTT thread access
-        self._loop = asyncio.get_running_loop()
-
-        try:
-            self._setup_mqtt()
-            await self._device_connection_loop()
-        except KeyboardInterrupt:
-            self.logger.info("\nProgram exiting...")
-        except Exception as e:
-            self.logger.error("Unexpected error: %s", e)
-        finally:
-            await self.stop()
-
-    async def stop(self):
-        """Stop the IoT bridge"""
+    def stop(self):
+        """Stop bridge"""
         self.running = False
         if self.mqtt_client:
+            self.mqtt_client.loop_stop()
             self.mqtt_client.disconnect()
-        self.logger.info("Bridge stopped")
+        self.log.info("Stopped")
 
 
 async def main():
-    """Main entry point"""
-    config = IoTBridgeConfig()
-    bridge = IoTBridge(config)
-    await bridge.start()
+    """Entry point"""
+    bridge = LaserBridge()
+    try:
+        await bridge.run()
+    except KeyboardInterrupt:
+        print("\nProgram exiting")
+        bridge.stop()
 
 
 if __name__ == "__main__":
